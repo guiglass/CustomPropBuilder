@@ -4,7 +4,7 @@ This project contains tools which help automate the process of converting .blend
 
 `%USERPROFILE%\LocalLow\Animation Prep Studios\AnimationPrepStudio_Lite\VR_MocapAssets`
 
-
+___
 ## Getting Started
 
 ![Test Image 4](https://raw.githubusercontent.com/guiglass/PropBuilder/master/Documentation/menu.png)
