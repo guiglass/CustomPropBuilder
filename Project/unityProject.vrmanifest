@@ -1,0 +1,16 @@
+{
+  "source": "Unity",
+  "applications": [
+    {
+      "app_key": "application.generated.unity.wacki_vivelaserpointergui.exe",
+      "launch_type": "url",
+      "url": "steam://launch/",
+      "action_manifest_path": "C:\\Users\\grant\\Documents\\GitHub\\AnimPrepBuilder\\2019.2.4f1\\PropBuilder\\Project\\actions.json",
+      "strings": {
+        "en_us": {
+          "name": "Prop Building [Testing]"
+        }
+      }
+    }
+  ]
+}
