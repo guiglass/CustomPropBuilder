@@ -4,7 +4,7 @@ __author__ = "Grant Olsen"
 __copyright__ = "Copyright 2019, Animation Prep Studios"
 __credits__ = [""]
 __license__ = "GPL"
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __title__ = 'AnimPrep Asset Project Creator'
 import os, sys, json, time, pickle
 
@@ -101,6 +101,9 @@ for m in bpy.data.materials:
 	for i, slot in enumerate(m.texture_slots):
 
 		if slot is not None and hasattr(slot.texture, 'image'):
+			if slot.texture.image is None:
+				continue
+
 			filename = slot.texture.image.filepath #.encode('ascii','ignore').decode()  # the filename and extension of the image, strip dir info
 			filename = os.path.basename(filename.replace('//', ''))  # Extract file name from path
 
@@ -197,7 +200,7 @@ if armature is not None:
 	pose_bone.keyframe_insert(data_path="location")
 
 	#now search for any objects that are a child of a bone, but does not have any weightpainting (armature modifiers)
-	for obj in bpy.data.objects:
+	for obj in bpy.data.objects: #TODO use armature.children instead of the entire scene?
 		if obj.type == 'ARMATURE':
 			armature = obj
 			continue
