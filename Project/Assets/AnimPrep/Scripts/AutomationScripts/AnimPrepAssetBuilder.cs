@@ -232,20 +232,22 @@ using System.IO;
 				}
 
 				//Copy all images files
-				string[] extensions = new[] { ".png", ".jpg", ".tiff", ".bmp" };
+				var textures_path = Path.Combine(uploadFolder, "textures");
+				if (Directory.Exists(textures_path))
+				{
+					string[] extensions = new[] { ".png", ".jpg", ".tiff", ".bmp" };
+				
+					DirectoryInfo dir_images = new DirectoryInfo (textures_path);
 
-				var texturesPath = Path.Combine (uploadFolder, "textures");
-
-				if (Directory.Exists(texturesPath)) {
-					DirectoryInfo dir_images = new DirectoryInfo (texturesPath);
 					FileInfo[] texturesInfo =
-						dir_images.GetFiles ()
-						.Where (f => extensions.Contains (f.Extension.ToLower ()))
-						.ToArray ();
+						dir_images.GetFiles()
+							.Where(f => extensions.Contains(f.Extension.ToLower()))
+							.ToArray();
 
-					foreach (FileInfo f in texturesInfo) {
-						var to = Path.Combine (processingPath, f.Name);
-						File.Copy (f.FullName, to);
+					foreach (FileInfo f in texturesInfo)
+					{
+						var to = Path.Combine(processingPath, f.Name);
+						FileUtil.CopyFileOrDirectory(f.FullName, to);
 					}
 				}
 
