@@ -75,35 +75,77 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 	private const string processedTag = "PROCESSED";
 	private const string mappedTag = "MAPPED";
 
+	
 	public static string assetBundleVariant = "prop";
 
-	public static string assetBundlesFolder = "Assets/AssetBundles";
+    //public static string assetBundlesFolder = "Assets/AssetBundles";
+    public static string assetBundlesFolder { get { return String.Format("Assets{0}AssetBundles", Path.DirectorySeparatorChar); } }
 
-	public static string processingFolder = "Assets/AnimPrep_Processing";
-
-	public static string thumbnailsFolder = "Thumbnails";
-
-	public const string prefabsFolder = "Assets/AnimPrep_Prefabs"; //the folder to temporaraly store prefabs
+    //public static string processingFolder = "Assets/AnimPrep_Processing";
+    public static string processingFolder { get { return String.Format("Assets{0}AnimPrep_Processing", Path.DirectorySeparatorChar); } }
+    
+    //public const string prefabsFolder = "Assets/AnimPrep_Prefabs/"; //the folder to store prefabs
+    public static string prefabsFolder { get { return String.Format("Assets{0}AnimPrep_Prefabs", Path.DirectorySeparatorChar); } }
 
 	public static char templateSeperator = '$';
 
 	private string[] templates = new string[] {assetBundleVariant, };
 
-	private static string CheckIsTemplate(string[] _templates, string _assetPath) {
-		//Debug.Log("TODO CHECKING TEMPLATES " + assetPath);
+	/*private static string CheckIsTemplate(string[] _templates, string _assetPath) {
 		foreach (string template in _templates) {
-			//Debug.Log ("IMPORTING ASSET " + assetPath.ToLower ());
 			if (Path.GetFileNameWithoutExtension (_assetPath.ToLower ()).StartsWith (template)) {
+				return template;
+			}
+		}
+		return "";
+	}*/
+	private string CheckIsTemplate(string[] _templates) {
+		foreach (string template in _templates) {
+			var cleanedAssetPath = Path.GetFileNameWithoutExtension (assetPath.ToLower ());
+			if (cleanedAssetPath.StartsWith (template.ToLower() + templateSeperator)) {
 				return template;
 			}
 		}
 		return "";
 	}
 
-
 	private void OnPreprocessModel() {
-		//Load in the preconfigured avatar from the resources folder
-		if (CheckIsTemplate (templates, assetPath).Length > 0) {		
+		//Load in the preconfigured model from the resources folder
+		assetPath = assetPath.Replace('/', Path.DirectorySeparatorChar); //fix the path so that it uses the correct seperator for this system
+
+		
+		string templateType = CheckIsTemplate (templates);
+		if (!String.IsNullOrEmpty(templateType))
+		{
+			var importer = (ModelImporter) assetImporter;
+			
+			if (Path.GetExtension (assetPath) != ".fbx") {
+				importer.animationType = ModelImporterAnimationType.None;
+				return;
+			}
+			
+			if (importer.userData.Contains(mappedTag)) {//Must re-import or else humandescription bones might still worng (as well as other things)
+				return;
+			}
+			
+			importer.isReadable = true;
+
+			importer.importAnimation = false;
+			importer.importMaterials = true;
+			importer.importCameras = false;
+			importer.importLights = false;
+
+			importer.materialLocation = ModelImporterMaterialLocation.External;
+
+			//Blender's normals are wrong when imported into unity causing artifacts in whole body when using blendshapes, use calculate to force unity to make the normals correct.
+			importer.importNormals = ModelImporterNormals.Calculate; 
+			importer.importBlendShapeNormals = ModelImporterNormals.Calculate;
+
+
+			importer.animationType = ModelImporterAnimationType.Generic;
+		}
+
+		/*if (CheckIsTemplate (templates).Length > 0) {		
 			
 			var importer = (ModelImporter)assetImporter;
 
@@ -128,7 +170,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 			importer.importMaterials = true;
 			importer.materialLocation = ModelImporterMaterialLocation.External;
-		}
+		}*/
 	}
 		
 	static Texture GetFileByKeywords(string path, string[] keywords) {
@@ -262,12 +304,14 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 	static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
 	{
 
-		foreach (string assetPath in importedAssets)
+		foreach (string importedAssetPath in importedAssets)
 		{			
-
-			if (Path.GetExtension (assetPath) == ".meta") {
+			Debug.Log("AOnPostprocessAllAssets " + importedAssetPath);
+			if (Path.GetExtension (importedAssetPath) == ".meta") {
 				continue;
 			}
+			
+			string assetPath = importedAssetPath.Replace ('/', Path.DirectorySeparatorChar); //fix the path so that it uses the correct seperator for this system
 
 			string assetFileName = Path.GetFileName (assetPath);
 			string[] split = assetFileName.Split (templateSeperator);
@@ -281,7 +325,11 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 			string assetFolder = Path.GetDirectoryName (assetPath);
 
+			
+			
 			if (assetPath.StartsWith (processingFolder)) {//Looking for the copied .fbx file that resides in the projects processing/prefab folder
+
+				
 				if (!assetPath.EndsWith (".fbx", StringComparison.OrdinalIgnoreCase)) {//only check if .fbx is in the processing folder
 					continue;
 				}
@@ -293,11 +341,8 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 					Debug.LogError ("SKIPPING - The JSON file did not exist at path: " + jsonPath);
 					continue;
 				}
-
-			
-
+				
 				ModelImporter modelImporter = ModelImporter.GetAtPath (assetPath) as ModelImporter;
-
 
 				string jsonTxt = File.ReadAllText(jsonPath);
 				AssetBundleUserJson userPrefs = (AssetBundleUserJson) JsonUtility.FromJson (jsonTxt, typeof(AssetBundleUserJson));
@@ -650,12 +695,12 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				GameObject.DestroyImmediate (real);
 
 			} else if (assetPath.StartsWith (prefabsFolder)) { //ASSET BUNDLE FINAL PROCESSING 
-				
+				Debug.Log("ASSET BUNDLE FINAL PROCESSING 1");
 				var assetImport = AssetImporter.GetAtPath (assetPath);
 				assetImport.SetAssetBundleNameAndVariant(Path.GetFileNameWithoutExtension(assetPath), assetBundleVariant);
 
 			} else if (assetPath.StartsWith (assetBundlesFolder)) { //ASSET BUNDLE FINAL PROCESSING 
-				
+
 				if (!Path.GetExtension (assetPath).Contains (assetBundleVariant)) {
 					continue; //might be a .meta file, just ignore it
 				}
@@ -668,10 +713,8 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				}
 					
 				string assetDestFolder = Path.Combine (assetBundlesFolder, Path.GetFileNameWithoutExtension(assetPath).ToLower() );
-
 				string jsonPath = Path.Combine (assetFolder, uuid+".json");
-
-				if (!File.Exists (jsonPath)) {
+				/*if (!File.Exists (jsonPath)) {
 
 					if (Path.GetDirectoryName (assetPath).Equals(assetBundlesFolder)) {
 
@@ -692,7 +735,31 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 					Debug.LogWarning ("SKIPPING - The JSON file did not exist at path: " + jsonPath);
 					continue;
+				}*/
+				
+				if (!File.Exists (jsonPath)) {
+					if (Path.GetDirectoryName (assetPath).Equals(assetBundlesFolder)) {
+					
+						//if (Path.GetFullPath(Path.GetDirectoryName (assetPath)).Equals(Path.GetFullPath(assetBundlesFolder))) {
+						if (Directory.Exists (assetDestFolder)) {
+							FileUtil.DeleteFileOrDirectory( Path.Combine (assetDestFolder, assetFileName));
+							File.Move(assetPath, Path.Combine (assetDestFolder, assetFileName));
+
+							var thumbnailFolderAbs = Path.Combine (assetDestFolder, "thumbnails");
+							TakePortraitPictures (assetFileName, rootObjs, thumbnailFolderAbs); //update the portrait pictures
+
+							AssetDatabase.Refresh ();
+							continue;
+						}
+
+					} else {
+						continue;
+					}
+
+					Debug.LogWarning ("SKIPPING - The JSON file did not exist at path: " + jsonPath);
+					continue;
 				}
+				
 				string jsonTxt = File.ReadAllText(jsonPath);
 				AssetBundleUserJson userPrefs = (AssetBundleUserJson) JsonUtility.FromJson (jsonTxt, typeof(AssetBundleUserJson));
 				File.Delete (jsonPath);//no longer needed
