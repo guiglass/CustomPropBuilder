@@ -1,4 +1,5 @@
-﻿#if UNITY_EDITOR
+﻿using System;
+#if UNITY_EDITOR
 using UnityEditor;
 using UnityEngine;
 using System.Linq;
@@ -84,7 +85,7 @@ using System.IO;
 			foreach (var go in allRootGos) {
 				bool isPrefabInstance = PrefabUtility.GetPrefabParent(go) != null && PrefabUtility.GetPrefabObject(go.transform) != null;
 				if (isPrefabInstance) {
-					Object parentObject = EditorUtility.GetPrefabParent(go);
+					UnityEngine.Object parentObject = EditorUtility.GetPrefabParent(go);
 					string path = AssetDatabase.GetAssetPath(parentObject); 
 
 					if (assetPath.Equals (path)) {
@@ -165,7 +166,7 @@ using System.IO;
 
 		EditorGUILayout.LabelField("Select the .blend file to process:");
 
-		if (GUILayout.Button("Import Prop Model", customLabel)) {
+		if (GUILayout.Button(new GUIContent("Import Prop Model", "Select .blend files containing valid models. Processes the model to generate a custom assetbundle compatible with AnimationPrepStudio runtime."), customLabel)) {
 
 			if (!string.IsNullOrEmpty (blenderAppPath) && !File.Exists (blenderAppPath)) {
 				EditorUtility.DisplayDialog("Blender Application Is Not Set",
@@ -296,7 +297,7 @@ using System.IO;
 		customLabel.fontStyle = FontStyle.Bold;
 
 		EditorGUILayout.LabelField("Save changes to assetbundles:");
-		if (GUILayout.Button("Re-Build Assetbundles", customLabel)) {
+		if (GUILayout.Button(new GUIContent("Re-Build Assetbundles", "After making any changes to avatars, this will update the changes to the local assetbundle files."), customLabel)) {
 			
 			FixPlayerSettings();
 			
@@ -359,7 +360,7 @@ using System.IO;
 
 		EditorGUILayout.LabelField("Add processed models to scene:");
 
-		if (GUILayout.Button("Append Prefabs To Scene", customLabel))	{
+		if (GUILayout.Button(new GUIContent("Append Prefabs To Scene", "Places all prefabs into the current scene."), customLabel))	{
 
 			var info = new DirectoryInfo(AnimPrepAssetPostprocessor.prefabsFolder);
 			var fileInfo = info.GetFiles("*.prefab", SearchOption.TopDirectoryOnly);
@@ -379,7 +380,7 @@ using System.IO;
 				foreach (var go in allRootGos) {
 					bool isPrefabInstance = PrefabUtility.GetPrefabParent(go) != null && PrefabUtility.GetPrefabObject(go.transform) != null;
 					if (isPrefabInstance) {
-						Object parentObject = EditorUtility.GetPrefabParent(go);
+						UnityEngine.Object parentObject = EditorUtility.GetPrefabParent(go);
 						string path = AssetDatabase.GetAssetPath(parentObject); 
 
 						if (assetPath.Equals (path)) {
@@ -411,10 +412,17 @@ using System.IO;
 		customLabel.fontStyle = FontStyle.Italic;
 
 		EditorGUILayout.LabelField("Show folder containing output files:");
-		if (GUILayout.Button ("Open Assetbundles Folder", customLabel)) {
+		GUILayout.BeginHorizontal();
+		
+		if (GUILayout.Button (new GUIContent("Assetbundles", "Opens the folder containing the newly created Assetbundle files."), customLabel)) {
 			ShowAssetBundlesExplorer ();
 		}
 
+		customLabel.normal.textColor = new Color(1.0f,0.2f,0.2f);
+		if (GUILayout.Button (new GUIContent("VR_MocapAssets", "Opens the destination folder where Assetbundle data must be copied to in order for it to be included in AnimationPrepStudio runtime."), customLabel)) {
+			ShowMocapAssetsExplorer ();
+		}
+		GUILayout.EndHorizontal();
 
 		EditorGUILayout.Space();
 
@@ -457,7 +465,7 @@ using System.IO;
 		customLabel.fixedWidth = 100;
 
 		blenderAppPath = GUILayout.TextField(blenderAppPath, GUILayout.MinWidth (0));
-		if (GUILayout.Button ("Browse", customLabel)) {
+		if (GUILayout.Button (new GUIContent("Browse", "Select a valid Blender v2.79b installation path by locating and selecting the \"blender.exe\" runtime application file."), customLabel)) {
 			string modelPath = EditorUtility.OpenFilePanel("Blender Application (v2.79)", Path.GetDirectoryName(blenderAppPath), "exe");
 			if (!string.IsNullOrEmpty (modelPath)) {
 				blenderAppPath = modelPath;
@@ -484,12 +492,18 @@ using System.IO;
 		blenderAppExists = !string.IsNullOrEmpty (blenderAppPath) && File.Exists (blenderAppPath);
 	}
 
-
 	public static void ShowAssetBundlesExplorer()
 	{
 		ShowExplorer ( Application.dataPath + Path.Combine("/../", AnimPrepAssetPostprocessor.assetBundlesFolder));
 	}
 
+	public static void ShowMocapAssetsExplorer()
+	{
+		ShowExplorer(
+			Environment.ExpandEnvironmentVariables(
+				string.Format("%userprofile%{0}appdata{0}localLow{0}Animation Prep Studios{0}AnimationPrepStudio_Lite{0}VR_MocapAssets{0}", Path.DirectorySeparatorChar)
+			));
+	}
 
 	public static void ShowExplorer(string itemPath)
 	{
