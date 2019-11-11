@@ -419,7 +419,7 @@ using System.IO;
 		}
 
 		customLabel.normal.textColor = new Color(1.0f,0.2f,0.2f);
-		if (GUILayout.Button (new GUIContent("VR_MocapAssets", "Opens the destination folder where Assetbundle data must be copied to in order for it to be included in AnimationPrepStudio runtime."), customLabel)) {
+		if (GUILayout.Button (new GUIContent("VR_MocapAssets", "This is the destination folder where you should copy Assetbundles to for them to be included in AnimationPrepStudio runtime."), customLabel)) {
 			ShowMocapAssetsExplorer ();
 		}
 		GUILayout.EndHorizontal();
