@@ -4,7 +4,9 @@ using UnityEngine;
 using System.Linq;
 using System.IO;
 
-[ExecuteInEditMode] public class AnimPrepAssetBuilder : EditorWindow {
+[ExecuteInEditMode] public class AnimPrepAssetBuilder : EditorWindow 
+{
+	public static string BUILDER_VERSION = "2.2.1";
 
 	[Header("References")]
 
@@ -34,8 +36,17 @@ using System.IO;
 
 		CheckBlenderAppExists ();
 	}
-
-
+	
+	void FixPlayerSettings()
+	{
+		PlayerSettings.colorSpace = ColorSpace.Linear;
+		PlayerSettings.virtualRealitySupported = true;
+		PlayerSettings.SetVirtualRealitySDKs(BuildTargetGroup.Standalone, new string[] { "OpenVR", } );
+		PlayerSettings.stereoRenderingPath = StereoRenderingPath.SinglePass;
+		PlayerSettings.companyName = "Animation Prep Studios";
+		PlayerSettings.productName = "Prop Builder";
+		PlayerSettings.bundleVersion = BUILDER_VERSION;
+	}
 	string modelPathLast = "";
 	const string blenderAppPathDefault = "C:\\Program Files\\Blender Foundation\\Blender\\blender.exe";
 	string blenderAppPath = blenderAppPathDefault;
@@ -112,7 +123,8 @@ using System.IO;
 		customLabel.normal.textColor = new Color(0.5f,0.5f,0.5f);
 		customLabel.fontStyle = FontStyle.Bold;
 
-		GUILayout.Label(string.Format("Version: {0} (Lite)", Application.version), customLabel);
+		GUILayout.Label(string.Format("Version: {0} (Lite)", BUILDER_VERSION/*Application.version*/), customLabel);
+
 		EditorGUILayout.EndVertical();
 
         customLabel = new GUIStyle("Button");
@@ -160,8 +172,9 @@ using System.IO;
 					"Please browse for and select the installed Blender application. Must be version 2.79.", "OK");
 				return;
 			}
-            PlayerSettings.colorSpace = ColorSpace.Linear;
-
+			
+			FixPlayerSettings();
+			
             AssetDatabase.RemoveUnusedAssetBundleNames ();
 
 			var modelPath = EditorUtility.OpenFilePanel("Load model", modelPathLast, "blend,fbx");
@@ -284,7 +297,9 @@ using System.IO;
 
 		EditorGUILayout.LabelField("Save changes to assetbundles:");
 		if (GUILayout.Button("Re-Build Assetbundles", customLabel)) {
-
+			
+			FixPlayerSettings();
+			
 			var allPaths = AssetDatabase.GetAllAssetPaths ();
 			foreach (var assetPath in allPaths) {
 				if (assetPath.StartsWith(AnimPrepAssetPostprocessor.prefabsFolder)) {

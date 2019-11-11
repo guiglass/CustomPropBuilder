@@ -50,6 +50,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 		public float alpha;
 		public bool use_transparency;
 
+		public BlenderColorJson diffuse_color;
 		public float diffuse_intensity;
 		public float specular_intensity;
 		public float specular_hardness;
@@ -251,9 +252,11 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 	//TEXTURES
 	void OnPreprocessTexture()
-	{		
-		if (!assetPath.StartsWith (processingFolder)) { //only check textures in the upload processing folder
-			Debug.LogWarning(assetPath + " TEXTURE DOES NOT BELONG TO: " + processingFolder);
+	{
+        assetPath = assetPath.Replace('/', Path.DirectorySeparatorChar); //fix the path so that it uses the correct seperator for this system
+
+        if (!assetPath.StartsWith (processingFolder)) { //only check textures in the upload processing folder
+			//Debug.LogWarning(assetPath + " TEXTURE DOES NOT BELONG TO: " + processingFolder);
 			return;
 		}
 
@@ -261,9 +264,9 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 		string assetFolder = Path.GetDirectoryName (importer.assetPath);
 		string blenderJsonPath = Path.Combine (assetFolder, "blender.json");
-
-
-		if (File.Exists (blenderJsonPath)) { //check if the blender materials json exists
+         
+        if (File.Exists (blenderJsonPath)) { //check if the blender materials json exists
+            
 			BlenderJsonObject blenderJsonArray = JsonUtility.FromJson<BlenderJsonObject> (
 				File.ReadAllText (blenderJsonPath)
 			);
@@ -283,9 +286,8 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 					}
 				}
 			}
-
+			
 		} else {
-			Debug.Log ("NO BLENDER JSON FILE " + assetPath);
 			//fallback incase no blender material Json was available (or the user uploaded only the .fbx file)
 			var fileName = Path.GetFileName (assetPath).ToLower ();
 			if (fileName.Contains ("_normal") || fileName.Contains ("_nrm") || fileName.Contains ("_bumpmap") || fileName.Contains ("_norm") || fileName.Contains ("_height")) {
@@ -297,7 +299,6 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 		importer.textureType = TextureImporterType.Default; //set the default, if nothing was changed
 	}
-		
 
 
 
@@ -390,12 +391,16 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 				var childrenRenderers = real.GetComponentsInChildren<Renderer>();
 
 				foreach (Renderer renderer in childrenRenderers) {
+					if (renderer == null) {
+						continue;
+					}
 
-					if (renderer != null) {
-						renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
-						renderer.receiveShadows = true;
+					renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+					renderer.receiveShadows = true;
 
-						var material = renderer.sharedMaterial;
+					foreach (var material in renderer.sharedMaterials) {
+
+						//var material = renderer.sharedMaterial;
 
 						var mainColor = material.GetColor ("_Color");
 						mainColor.a = 1.0f; //always do this, just because unity is weird and seemingly random alpha values always appear
@@ -404,15 +409,20 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 
 						if (materialsJson != null) {
 							//THE NEW WAY (USING BLENDER MATERIALS JSON)
+							//var textureFileName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
 							var was = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture));
 							var materialName = material.name;// Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
 							if (material.mainTexture != null) {
 								materialName = Path.GetFileName (AssetDatabase.GetAssetPath (material.mainTexture)); //takes a full path to an texture asset, and returs the filename with extension (which is used as key for materials json)
 							}
+							materialName = Path.GetFileNameWithoutExtension (materialName);
 
-							if (materialsJson.ContainsKey (materialName)) {		
-								
+							if (materialsJson.ContainsKey (materialName)) {
+								//if (materialsJson.ContainsKey (textureFileName)) {
+
+								//var blenderMaterial = materialsJson [textureFileName];
 								var blenderMaterial = materialsJson [materialName];
+
 
 								Texture2D diffTex = null;
 								Texture2D bumpTex = null;
@@ -428,10 +438,9 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 								var use_map_emit = false;
 
 								foreach (var slot in blenderMaterial.texture_slots) { //check all slots to see if there are any spec or emmit textures
-									if (slot.use_map_color_diffuse) {										
-										//Debug.Log("use_map_color_diffuse " + slot.filename);
+									if (slot.use_map_color_diffuse) {
 										//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-										var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+										var texPath = Path.Combine (Path.GetDirectoryName (assetPath), slot.filename);
 										if (File.Exists (texPath)) {
 											var folder = Path.GetDirectoryName (texPath);
 											diffTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
@@ -443,7 +452,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 									if (slot.use_map_normal) {		
 										//Debug.Log("use_map_normal " + slot.filename);
 										//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-										var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+										var texPath = Path.Combine (Path.GetDirectoryName (assetPath), slot.filename);
 										if (File.Exists (texPath)) {
 											var folder = Path.GetDirectoryName (texPath);
 											bumpTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
@@ -452,7 +461,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 									if (slot.use_map_specular) {
 										//Debug.Log("use_map_specular " + slot.filename);
 										//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-										var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+										var texPath = Path.Combine (Path.GetDirectoryName (assetPath), slot.filename);
 										if (File.Exists (texPath)) {
 											var folder = Path.GetDirectoryName (texPath);
 											specularTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
@@ -461,13 +470,12 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 									if (slot.use_map_emit) {
 										//Debug.Log("use_map_emit " + slot.filename);
 										//var texPath = AssetDatabase.GetAssetPath (material.mainTexture);
-										var texPath = Path.Combine(Path.GetDirectoryName(assetPath), slot.filename);
+										var texPath = Path.Combine (Path.GetDirectoryName (assetPath), slot.filename);
 										if (File.Exists (texPath)) {
 											var folder = Path.GetDirectoryName (texPath);							
 											emissionTex = AssetDatabase.LoadAssetAtPath (Path.Combine (folder, slot.filename), typeof(Texture2D)) as Texture2D;
 										}
 										emit_factor = slot.emit_factor;
-										
 									}
 
 									use_map_color_diffuse |= slot.use_map_color_diffuse;
@@ -477,9 +485,9 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 								}
 
 								var specIsBlack = 
-									(blenderMaterial.specular_color.r * blenderMaterial.specular_intensity) == 0 
+									(blenderMaterial.specular_color.r * blenderMaterial.specular_intensity) == 0
 									&&
-									(blenderMaterial.specular_color.g * blenderMaterial.specular_intensity) == 0  
+									(blenderMaterial.specular_color.g * blenderMaterial.specular_intensity) == 0
 									&&
 									(blenderMaterial.specular_color.b * blenderMaterial.specular_intensity) == 0;
 
@@ -490,18 +498,17 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 										blenderMaterial.specular_color.g * blenderMaterial.specular_intensity * 0.25f,
 										blenderMaterial.specular_color.b * blenderMaterial.specular_intensity * 0.25f
 									));
-										
 								}
 
 								if (use_map_color_diffuse) { //set all white and adjust brightness based on diffuse intensity set from blender
-									material.SetColor ("_Color",  new Color (
-										blenderMaterial.diffuse_intensity,
-										blenderMaterial.diffuse_intensity,
-										blenderMaterial.diffuse_intensity,
+									material.SetColor ("_Color", new Color (
+										blenderMaterial.diffuse_color.r * blenderMaterial.diffuse_intensity,
+										blenderMaterial.diffuse_color.g * blenderMaterial.diffuse_intensity,
+										blenderMaterial.diffuse_color.b * blenderMaterial.diffuse_intensity,
 										blenderMaterial.alpha
 									));
 								} else { 
-									material.SetColor ("_Color",  new Color (// has no texture, thus pass through the color and adjust on diffuse intensity set from blender
+									material.SetColor ("_Color", new Color (// has no texture, thus pass through the color and adjust on diffuse intensity set from blender
 										mainColor.r * blenderMaterial.diffuse_intensity,
 										mainColor.g * blenderMaterial.diffuse_intensity,
 										mainColor.b * blenderMaterial.diffuse_intensity,
@@ -534,7 +541,7 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 									material.renderQueue = -1;
 
 								}
-
+									
 								if (use_map_color_diffuse) {
 									material.SetTexture ("_MainTex", diffTex);
 								}
@@ -561,8 +568,9 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 								material.SetFloat ("_Shininess", blenderMaterial.specular_hardness / 511f); //synonmus with _Glossiness if using legacy shaders
 
 								if (!use_map_specular && !use_map_emit) {
-									if (blenderMaterial.key.ToLower ().Contains ("hair")) {
-										material.shader = Shader.Find ("Custom/Standard Two Sided Soft Blend");
+
+									/*if (blenderMaterial.key.ToLower ().Contains ("hair")) {
+										material.shader = Shader.Find ("Hair/Standard Two Sided Soft Blend");
 										material.SetFloat ("_Cutoff", 0.05f);
 									} else if (
 										blenderMaterial.key.ToLower ().Contains ("eye") && (
@@ -572,17 +580,21 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 										)) { //if its hair sprites
 										material.shader = Shader.Find ("Sprites/Default");
 										continue; //it's no longer a stander shader, nothing more to be done
+									}*/
+
+									if (blenderMaterial.key.ToLower ().Contains ("hair")) {
+										material.shader = Shader.Find ("Hair/Standard Two Sided Soft Blend");
+										material.SetFloat ("_Cutoff", 0.05f);
 									}
+									
 								}
-
-
-
+								
 							}
 
 						} else {
 							/*
 							material.shader = Shader.Find ("Standard (Specular setup)"); //the default fallback shader
-							//THE OLD WAY - USE KEYWORDS IN FILE NAME TO CONTROL SHADER KEYWORDS
+							//THE OLD WAY - USE KEYWORDS IN MATERIAL NAME TO CONTROL SHADER KEYWORDS
 
 							var color222 = material.GetColor ("_Color");
 
@@ -674,9 +686,11 @@ public class AnimPrepAssetPostprocessor : AssetPostprocessor {
 							*/
 						}
 
-						//var shaderParams = renderer.gameObject.AddComponent<RendererShaderParams> ();
-						//shaderParams.StoreParams (); //NOW USING RendererShaderParams.StoreAllRenderers (real);
 					}
+
+					//var shaderParams = renderer.gameObject.AddComponent<RendererShaderParams> ();
+					//shaderParams.StoreParams (); //NOW USING RendererShaderParams.StoreAllRenderers (real);
+				
 				}
 
 
