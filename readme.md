@@ -1,4 +1,4 @@
-# Animation Prep Studio (Prop Builder) V2.0.2
+# Animation Prep Studio (Prop Builder) V2.2.1
 
 This project contains tools which help automate the process of converting .blend models into prop assets compatible with [Animation Prep Studio (Lite)](https://drive.google.com/open?id=17MyFQ75dfBuaf5IL4ba-4BH8klWj6-5r "Animation Prep Studio Direct Download"). The builder tool can import .blend files which were created using blender [version 2.79b](https://download.blender.org/release/Blender2.79/ "Blender Downloads"). After successful import there will be a new asset folder, then to make your item available in the game simply drag and drop the asset folder into the `VR_MocapAssets` folder located at:
 
