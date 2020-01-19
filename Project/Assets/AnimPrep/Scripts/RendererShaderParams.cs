@@ -110,7 +110,9 @@ public class RendererShaderParams : MonoBehaviour {
 
 		for (int n = 0; n < mats.Length; n++) {
 			var mat = mats[n];
-
+			if (mat == null) {
+				continue; //maybe it was missing?
+			}
 			List<ShaderKeywordParams> shaderKeywordParamsList = new List<ShaderKeywordParams> ();
 			for (int i = 0; i < keywordsBoolean.Length; i++) {
 				var keyword = keywordsBoolean [i];
