@@ -19,8 +19,8 @@ public class BuildProp : MonoBehaviour {
 	public void CreateEmptyContianers(string modelAssetName) {
 		gameObject.SetActive (true);
 
-		gameObject.AddComponent<PropLinker> ();
-
+		var linkerScript = gameObject.AddComponent<PropLinker> ();
+		linkerScript.originalScale = transform.localScale;
 
 		List<Transform> allChildren = new List<Transform>();
 		allChildren.Add (transform);

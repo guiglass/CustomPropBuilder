@@ -207,6 +207,9 @@ public class PropLinker : MonoBehaviour
     [Tooltip("Allows advanced functionality to be added to a prop.")]
 	public PropType propType;
 
+	[HideInInspector]
+	public Vector3 originalScale = Vector3.one; //the scale of the model when it was imported, and can be used to determine if the user has adjusted the scale of the prefab.
+
 	public enum SkeletalMotionRangeChange
 	{
 		/// <summary>Estimation of bones in hand while holding a controller</summary>
